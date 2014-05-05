@@ -44,16 +44,19 @@
         <script type="text/javascript" src="js/libs/jquery-v1.10.2.min.js"></script>
         <script type="text/javascript" src="js/libs/underscore-min.js"></script>
         <script type="text/javascript" src="js/libs/kinetic-v4.5.2.js"></script>
+        <!--<script type="text/javascript" src="js/libs/kinetic.js"></script>-->
         <script type="text/javascript" src="js/editPhoto.js"></script>
         <script type="text/javascript">
-          setTimeout(function(){
-            App.EditPhoto.init({canvasContainer:'container'});
-            App.EditPhoto.addImage('img/logo.png',{type:'photo'});
-            App.EditPhoto.addImage('img/demo.png');
-            setTimeout(function(){
-              App.EditPhoto.removeEditItem(); 
-            },2000);
+          var _editPhoto = null;
+             setTimeout(function(){
+          _editPhoto = new EditPhoto({canvasContainer:'container'});
+            _editPhoto.addImage('img/logo.png',{type:'photo'});
+            //_editPhoto.addImage('img/demo.png');
+            /*setTimeout(function(){
+              _editPhoto.removeEditItem(); 
+            },2000);*/
           },3000);
+          
         </script>
     </body>
 </html>

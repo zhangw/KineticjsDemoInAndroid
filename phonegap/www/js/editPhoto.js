@@ -1,38 +1,38 @@
-//TODO:what does this method mean?
-if (!Function.prototype.bind) {
-  Function.prototype.bind = function (oThis) {
-    if (typeof this !== "function") {
-      // closest thing possible to the ECMAScript 5 internal IsCallable function
-      throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
-    }
+var EditPhoto = (function(){
 
-    var aArgs = Array.prototype.slice.call(arguments, 1), 
-    fToBind = this, 
-    fNOP = function () {},
-    fBound = function () {
-      return fToBind.apply(this instanceof fNOP
-                           ? this
-                           : oThis || window,
-                           aArgs.concat(Array.prototype.slice.call(arguments)));
-    };
-
-    fNOP.prototype = this.prototype;
-    fBound.prototype = new fNOP();
-
-    return fBound;
-  };
-}
-
-//The Global NameSpace
-App = {};
-
-;(function(App, $, undefined){
-
-  if (typeof App == 'undefined') window.App = {};
-
-  // the numbers of groups contained in the baselayer  
+  //the number of groups contained in the layer
   var count = 0;
-
+  
+  function EditPhoto(options){
+    this.options = {
+      stageWidth: 320,  // default canvas width
+      stageHeight: 320, // default canvas height
+      stageBgColor: '#221100',  // default canvas bg color
+      handleImagePath: 'img/handle.png',  // the handle
+      handleWidth: 40, // default handle width 
+      handleHeight: 40,// default handle height
+      editingStrokeColor: '#62CDD8', // default stroke color when editing the specific photo
+      lockedStrokeColor: '#F0F0F0', // default stroke color when the specific photo locked
+      editingStrokeWidth: 6, // default stroke width 
+      canvasContainer:'photoCanvasContainer' // the div contains the canvas 
+    };
+    this.stage = null; // the only canvas
+    this.baseLayer = null;// the only layer
+    this.eBg = null; // the container of all the photos which is a rectangle
+    this.eHandle = null;
+    this.eEdit = null; // the item being edited
+    this.originals = {};
+    this.timerHandle = null;
+     
+    $.extend(this.options,options); 
+    _setStage.apply(this,null);
+    _setBaseLayer.apply(this,null);
+    _createHandle.apply(this,null);
+    var content = this.stage.getContent();
+    content.addEventListener("touchmove", _stageTouchMove, false);
+    content.addEventListener("touchend", _stageTouchEnd, false);
+  };
+  
   // stage > baseLayer > eBg 
   //                    > bgGroup > photo [                                        
   //                                        the editable bgGroup
@@ -40,7 +40,7 @@ App = {};
   //                    > bgGroup > deco  ]  
   //                   > eHandle
   var _setStage = function() {
-    var self = App.EditPhoto;
+    var self = this;
     if (!self.stage) {
       self.stage = new Kinetic.Stage({
         container: self.options.canvasContainer,
@@ -51,10 +51,10 @@ App = {};
   };
 
   var _setBaseLayer = function() {
-    var self = App.EditPhoto;
+    var self = this;
     if (!self.baseLayer) {
       self.baseLayer = new Kinetic.Layer(
-        //TODO:OPTIMISE
+        //TODO:OPTIMISE,should use fastLayer
         {hitGrapeEnabled: false} 
       );
       self.eBg = new Kinetic.Rect({
@@ -73,7 +73,7 @@ App = {};
           if (self.eEdit.isPinching) return;
         }
         self.changeToPreviewMode();
-        _render();
+        _render.call(self,null);
       },300));
       self.baseLayer.add(self.eBg);
       self.stage.add(self.baseLayer);
@@ -81,14 +81,13 @@ App = {};
   };
 
   var _createHandle = function() {
-    var self = App.EditPhoto;
+    var self = this;
     if (!self.eHandle) {
       var imageObj = new Image();
       imageObj.src = self.options.handleImagePath;
       imageObj.onload = function() {
         self.eHandle.setDraggable(true);
         self.eHandle.on('dragstart', function(e) {
-          var startTouchPos = self.stage.getTouchPosition();
           var pos = self.eEdit.getPosition();
           var baseX = pos.x;
           var baseY = pos.y;
@@ -101,13 +100,13 @@ App = {};
           //var startRadian = self.eEdit.getRotation();
           clearInterval(self.timerHandle);
           self.timerHandle = setInterval(function() {
-            moveHandle(baseX, baseY, startRadius, startAspectRadian);
+            //TODO:bug!
+            moveHandle.call(self, baseX, baseY, startRadius, startAspectRadian);
           }, 25);
-
         });
         self.eHandle.on('dragend', function(e) {
           clearInterval(self.timerHandle);
-          _setHandleToRightTop(self.eEdit);
+          _setHandleToRightTop.call(self,self.eEdit);
           self.baseLayer.batchDraw();
         }); 
         self.baseLayer.batchDraw();
@@ -121,8 +120,7 @@ App = {};
         y: 0,
         width: self.options.handleWidth,
         height: self.options.handleHeight,
-        offset: [20, 20],
-        draggable: false,
+        offset: [20, 20], 
         id: 'handle',
         name: 'handle',
       });
@@ -131,7 +129,7 @@ App = {};
     }
 
     function moveHandle(baseX, baseY, startRadius, startAspectRadian) {
-      var touchPos = self.stage.getTouchPosition();
+      var self = this;
       var handlePos = self.eHandle.getPosition();
       var radius = App.Math.getDistanceFromTwoPoint(baseX, baseY, handlePos.x, handlePos.y);
       var scale = radius / startRadius;
@@ -146,7 +144,7 @@ App = {};
   };
 
   var _stageTouchMove = function(e) { 
-    var self = App.EditPhoto;
+    var self = this;
     var eEdit = self.eEdit;
     if (!eEdit) return;
     var touch1 = e.touches[0];
@@ -177,7 +175,7 @@ App = {};
   };
 
   var _stageTouchEnd = function(e) {
-    var self = App.EditPhoto;
+    var self = this;
     //$(document).trigger(self.CHANGE_EDIT_ITEM);
     var eEdit = self.eEdit;
     if (!eEdit) return;
@@ -196,6 +194,7 @@ App = {};
    * @param {Kinetic.Group} elm,the editable elm
    */
   var _getRightTopPoint = function(elm) {
+    var options = this.options;
     var pos = elm.getPosition();
     var baseX = pos.x;
     var baseY = pos.y;
@@ -204,13 +203,10 @@ App = {};
     var halfW = w * 0.5;
     var halfH = h * 0.5;
     var scale = elm.getScale();
-    // 2点間の距離
     var radius = App.Math.getDistanceFromTwoPoint(baseX, baseY, baseX + halfW * scale.x, baseY - halfH * scale.y);
-    // 2点間の角度(ラジアン)
     var radian = Math.atan2(halfH, halfW);
     var targetX = pos.x + radius * Math.cos(elm.getRotation() - radian);
     var targetY = pos.y + radius * Math.sin(elm.getRotation() - radian);
-    // 右上角の座標
     return { x: targetX, y: targetY };
   };
 
@@ -219,16 +215,16 @@ App = {};
    * @param {Kinetic.Group} elm
    */
   var _setHandleToRightTop = function(elm) {
-    var self = App.EditPhoto;
-    var rightTopPos = _getRightTopPoint(elm);
-    self.eHandle.setPosition(rightTopPos.x, rightTopPos.y);
+    var self = this;
+    var rightTopPos = _getRightTopPoint.call(self,elm);
+    self.eHandle.setPosition(rightTopPos);
   };
 
   /**
    * redraw the stage and reset the Zindex of eBg and eHandle
    */
   var _render = function() {
-    var self = App.EditPhoto;
+    var self = this;
     if (self.eBg) self.eBg.moveToBottom();
     if (self.eHandle) self.eHandle.moveToTop();
     //self.eHandle.setZIndex(self.eEdit.getZIndex());
@@ -237,436 +233,332 @@ App = {};
   };
 
 
-    App.EditPhoto = {
-      options:{
-        stageWidth: 320,  // default canvas width
-        stageHeight: 320, // default canvas height
-        stageBgColor: '#221100',  // default canvas bg color
-        handleImagePath: 'img/handle.png',  // the handle
-        handleWidth: 40, // default handle width 
-        handleHeight: 40,// default handle height
-        editingStrokeColor: '#62CDD8', // default stroke color when editing the specific photo
-        lockedStrokeColor: '#F0F0F0', // default stroke color when the specific photo locked
-        editingStrokeWidth: 6, // default stroke width 
-        canvasContainer:'photoCanvasContainer' // the div contains the canvas 
-      },
-      stage: null, // the only canvas
-      baseLayer: null,// the only layer
-      eBg: null, // the container of all the photos which is a rectangle
-      eHandle: null,
-      eEdit: null, // the item being edited
-      originals: {},
-      timerHandle: null,
-
-      /**
-       * init the canvas
-       * @param {json} options
-       */
-      init: function(options) {
-        var self = App.EditPhoto;
-        $.extend(self.options,options);   
-        _setStage();
-        _setBaseLayer();
-        _createHandle();
-        var content = self.stage.getContent();
-        content.addEventListener("touchmove", _stageTouchMove, false);
-        content.addEventListener("touchend", _stageTouchEnd, false);
-      },
-
-      /**
-       * clear and dispose the canvas resources
-       */
-      clear: function() {
-        var self = App.EditPhoto;
-        var content = self.stage.getContent();
-        content.removeEventListener("touchmove", self.stageTouchMove);
-        content.removeEventListener("touchend", self.stageTouchEnd);
-        self.stage.clear();
-        content.parentNode.removeChild(content);
-        self.stage = null;
-        self.baseLayer = null;
-        self.eHandle = null;
-        self.eBg = null;
-        self.eHandle = null;
-      },
-
-      /**
-       * clear all the decoration imgs on the canvas 
-       */
-      clearAllDecos: function() {
-        var self = App.EditPhoto;
-        self.baseLayer.get('.group').each(function(elm) {
-          if (elm.hc.type == 'deco') {
-            elm.destroy();
-          }
-        });
-        self.eEdit = null;
-        self.eHandle.hide();
-      },
-
-
-
-      /**
-       * change the specific item editable status
-       * @param {Kinetic.Group} currentElm
-       */
-      changeEditItem: function(currentElm) {
-        var self = App.EditPhoto;
-        if (currentElm.getOpacity() < 1) {
-          self.changeEditMode(currentElm, false);
-        } else {
-          self.changeToPreviewMode();
-          self.changeEditMode(currentElm, true);
-        }
-      },
-
-      /**
-       * make the specific bgGroup editable or not
-       * @param {Kinetic.Group} elm
-       * @param {boolen} edit
-       */
-      changeEditMode: function(elm, edit) {
-        var self = App.EditPhoto;
-        if (self.eEdit) self.eEdit.isEditing = false;
-        if (edit) {
-          elm.get('.bg').each(function(elm) { 
-            elm.enableStroke();
-            //elm.strokeEnabled(true);
-          });
-          elm.isEditing = true;
-          self.eEdit = elm;
-          elm.setOpacity(0.9);
-          if(!self.eEdit.isLocked) self.eHandle.show();
-          self.eHandle.moveToTop();
-        } else {
-          elm.get('.bg').each(function(elm){ 
-            elm.disableStroke();
-            //elm.strokeEnabled(false);
-          });
-          elm.setOpacity(1);
-          self.eHandle.hide();
-          self.eEdit = null;
-        }
-      },
-
-      /**
-       * change the stage into preview mode
-       */
-      changeToPreviewMode: function() {
-        var self = App.EditPhoto;
-        self.baseLayer.get('.group').each(function(elm) {
-          self.changeEditMode(elm, false);
-        });
-        self.eHandle.hide();
-      },
-
-      /**
-       * lock or unlock the specific edit item
-       */
-      toggleLockEditItem: function() {
-        var eEdit = App.EditPhoto.eEdit;
-        if (eEdit) {
-          if (eEdit.isLocked) {
-            if(eEdit.hc.usable)eEdit.setDraggable(true);
-            eEdit.get('.bg').each(function(elm) {
-              //console.log(App.EditPhoto.editingStrokeColor);
-              elm.setStroke(App.EditPhoto.editingStrokeColor);
-              App.EditPhoto.eHandle.show();
-            });
-          } else {
-            eEdit.setDraggable(false);
-            eEdit.get('.bg').each(function(elm) {
-              //console.log(App.EditPhoto.lockedStrokeColor);
-              elm.setStroke(App.EditPhoto.lockedStrokeColor);
-              App.EditPhoto.eHandle.hide();
-            });
-          }
-          eEdit.isLocked = !eEdit.isLocked;
-          _render();
-        }
-      },
-
-      /**
-       * remove the current being edited image from canvas
-       */
-      removeEditItem: function() {
-        var self = App.EditPhoto;
-        if (self.eEdit) {
-          self.eEdit.destroy();
-          self.eEdit = null;
-        }
-        if (self.eHandle) self.eHandle.hide();
-        _render();
-        //$(document).trigger(self.CHANGE_EDIT_ITEM);
-      },
-
-      /**
-       *  use this method to add photo to stage regardless of from album or app local pngs
-       *  @param {string} uri,such as 'path/img.png' or the parameter of the callback function when
-       *  calling camera or photo api of phonegap
-       *  @param {json} options,{type:'photo'} used to indicate the img won't be removed by
-       *  clearAllDecos function
-       */
-      addImage: function(uri, options) {
-        var _loadImage = function(uri,callback){
-          var imageObj = new Image();
-          imageObj.onload = function(){
-            callback(imageObj,options);
-          };
-          imageObj.src = uri;
-        };
-
-        _loadImage(uri, function(imageObj,options){
-          // the method used to draw the photo on the stage with the options
-          var _createDecoImage = function(imageObj,options){
-            var self = App.EditPhoto;
-            var type = 'deco';//the default type,the other type is 'photo'
-            var id = '';
-            var tmpW = Math.floor(imageObj.width * 0.5);
-            var w = Math.min(tmpW, 310);
-            var scaleX = 1;
-            var degree = 0;
-            var position = { x: (self.stage.getWidth() * 0.5), y: (self.stage.getHeight() * 0.5) };
-            var usable = true;
-            var filter = 0;
-            var nonfilter = false;
-            var callback = null;
-
-            if (options) {
-              if (options.id) id = options.id;
-              if (options.degree) degree  = options.degree;
-              if (options.position) position = options.position;
-              if (options.w) {
-                w = options.w;
-              }
-              if (options.scaleX) scaleX = options.scaleX;
-              if (options.type) type = options.type;
-              if (options.usable === false) usable = false;
-              if (options.filter > 0) filter = App.Data.filtersByIdNum[options.filter].index;
-              if (options.nonfilter) nonfilter = true;
-              if (options.callback) callback = options.callback;
-            }
-
-            var h = imageObj.height * w / imageObj.width;
-            var imgHalfW = w * 0.5,
-            imgHalfH = h * 0.5;
-
-            // Kinetic.Group as the container of photo 
-            var bgGroup = new Kinetic.Group({
-              x: position.x,
-              y: position.y,
-              width: w,
-              height: h,
-              offset: [imgHalfW, imgHalfH],
-              rotationDeg: degree,
-              draggable: usable,
-              id: 'group_' + count++,
-              name: 'group',
-              layer: self.baseLayer
-            });
-
-            //TODO
-            bgGroup.hc = {
-              id: id, 
-              type : type,//may 'deco' or 'photo'
-              image: imageObj,
-              usable: usable,
-              filter: filter,
-              nonfilter: nonfilter
-            };
-
-            // Kinetic.Image wrap the photo 
-            var bgImg = new Kinetic.Image({
-              image: imageObj,
-              x: imgHalfW,
-              y: imgHalfH,
-              width: w,
-              height: h,
-              scaleX: scaleX,
-              offset: [imgHalfW, imgHalfH],
-              draggable: false,
-              stroke: self.options.editingStrokeColor,
-              strokeWidth: self.options.editingStrokeWidth,
-              strokeScaleEnabled: false,
-              strokeEnabled: false,
-              name: 'bg',
-            });
-
-            // set the handler position on the top right of bgGroup which contains the photo
-            var rightTopPos = _getRightTopPoint(bgGroup);
-            self.eHandle.setPosition(rightTopPos.x, rightTopPos.y);
-            var touchStart = null;
-            bgGroup.on('touchstart', _.throttle(function(e) {
-              console.log('bgGroup,touchstart');
-              var that = this;
-              if (that.isEditing && that.isPinching) return; 
-              touchStart = self.stage.getTouchPosition();
-              _setHandleToRightTop(that);
-              if (that.isLocked) return; 
-              /*if (that.hc.usable == false && that.hc.id) {
-                var itemData = App.Data.Hearts.itemsObj[that.hc.id];
-                var tab = itemData.tab;
-                if (tab) {
-                var userdata = App.db.getUserdata();
-                if (userdata[tab.id]) {
-                that.setDraggable(true);
-                that.hc.usable = true;
-                }
-                }
-                }*/
-            }, 300));
-
-            bgGroup.on('touchend',_.throttle(function(e){
-              console.log('bgGroup,touchend');
-              var that = this;
-              if(that.isEditing && that.isPinching && !self.eEdit.isPinching) return;
-              var nowTouch = self.stage.getTouchPosition();
-              if (touchStart) {
-                if (Math.abs(touchStart.x - nowTouch.x) < 4 && Math.abs(touchStart.y - nowTouch.y) < 4 ) {
-                  self.changeEditItem(that);
-                }
-              }
-              clearInterval(self.timerHandle);
-              if (!this.isLocked && this.hc.usable) {
-                this.setDraggable(true);
-              }
-              self.baseLayer.batchDraw();
-            },300));
-
-            bgGroup.on('dragstart', _.throttle(function(e){
-              console.log('bgGroup,dragstart');
-              var that = this;
-              //if(this.isPinching) return;
-              this.get('.bg').each(function(elm) { elm.setOpacity(0.3); });
-              self.changeToPreviewMode();
-              self.changeEditMode(that, true);
-              clearInterval(self.timerHandle);
-              self.timerHandle = setInterval(function() {
-                _setHandleToRightTop(that);
-              }, 25);
-            },300));
-
-            bgGroup.on('dragend', _.throttle(function(e){
-              console.log('bgGroup,dragend');
-              var that = this;
-              //if(this.isPinching) return;
-              this.get('.bg').each(function(elm) { elm.setOpacity(1); });
-              clearInterval(self.timerHandle);
-              _setHandleToRightTop(that);
-              self.baseLayer.batchDraw();
-            },300));
-
-            bgGroup.on('pinchstart', _.throttle(function(e){
-              var that = this;
-              console.log(this.getAttr('id') + ' pinchstart!---');
-              self.eHandle.setDraggable(false);
-              self.changeEditMode(that, true);
-              clearInterval(self.timerHandle);
-              self.timerHandle = setInterval(function() {
-                _setHandleToRightTop(that);	
-              }, 25);
-            },300));
-
-            bgGroup.on('pinchend', _.throttle(function(e){
-              var that = this;
-              console.log(this.getAttr('id') + ' pinchend!---');
-              this.get('.bg').each(function(elm) { elm.setOpacity(1); });
-              if(that.hc.usable) self.eHandle.setDraggable(true);
-              clearInterval(self.timerHandle);
-              _setHandleToRightTop(that);
-              self.baseLayer.batchDraw();
-            },300));
-
-            bgGroup.add(bgImg);
-            self.baseLayer.add(bgGroup);
-            self.changeEditItem(bgGroup);
-            //$(document).trigger(self.CHANGE_EDIT_ITEM);
-            setTimeout(function() {self.baseLayer.draw();}, 100);
-
-            if (filter > 0) {
-              self.addFilter(App.Data.filters[filter].filter, callback);
-            } else {
-              if (callback) { callback(bgGroup); };
-            }
-          };
-          _createDecoImage(imageObj, options);
-        });
-      },
-
-      addFilter: function(filter, callback) {
-        var self = App.EditPhoto;
-        if (self.eEdit) {
-          self.removeFilter();
-          self.originals[self.eEdit.getId()] = self.eEdit.clone();
-          self.originals[self.eEdit.getId()].remove();
-          self.eEdit.get('.bg').each(function(elm){
-            //elm.applyFilter(filter, options, callback);
-            if (!callback) App.Spinner.show();
-            setTimeout(function() {
-              elm.setFilter(filter);
-              _render();
-              if (callback) {
-                callback();
-              } else {
-                App.Spinner.hide();
-              } 
-            },50);
-          });
-        } else {
-          if (callback) callback();
-        }
-      },
-
-      removeFilter: function() {
-        var self = App.EditPhoto;
-        var id = self.eEdit.getId();
-        var original = self.originals[id];
-        if (original) {
-          var zIndex = self.eEdit.getZIndex();
-          original.setRotation(self.eEdit.getRotation());
-          original.setPosition(self.eEdit.getPosition());
-          original.setScale(self.eEdit.getScale());
-          original.hc = self.eEdit.hc;
-          original.isLocked = self.eEdit.isLocked;
-          if (self.eEdit.isLocked) { original.setDraggable(false); }
-          else { if (self.eEdit.hc.usable) original.setDraggable(true); }
-          original.get('.bg').each(function(elm) {
-            // 現状のスケールを反映
-            var scaleX;
-            self.eEdit.get('.bg').each(function(elm) { scaleX = elm.getScaleX(); });
-            //console.log('scaleX = ' + scaleX);
-            elm.setScaleX(scaleX);
-            // 現状の外枠色を反映（ロック/非ロック）
-            if (self.eEdit.isLocked) { 
-              elm.setStroke(self.options.lockedStrokeColor); 
-            } else { 
-              elm.setStroke(self.options.editingStrokeColor); 
-            }
-          });
-          self.eEdit.destroy();
-          self.baseLayer.add(original);
-          //self.changeEditItem(original);
-          self.eEdit = original;
-          self.eEdit.setZIndex(zIndex);
-          self.originals[id] = null;
-        }
-      },
-
-      /**
-       * return all the photos except the decoration imgs
-       */
-      getPhotos: function() {
-        var self = App.EditPhoto;
-        var a = [];
-        self.baseLayer.get('.group').each(function(elm) {
-          if (elm.hc.type == 'photo') {
-            a.push(elm.hc.image);
-          }
-        });
-        return a;
-      }
+  /**
+   * clear and dispose the canvas resources
+   */
+  EditPhoto.prototype.clear = function(){
+    var self = this;
+    var content = self.stage.getContent();
+    content.removeEventListener("touchmove", _stageTouchMove);
+    content.removeEventListener("touchend", _stageTouchEnd);
+    self.stage.clear();
+    content.parentNode.removeChild(content);
+    self.stage = null;
+    self.baseLayer = null;
+    self.eHandle = null;
+    self.eBg = null;
+    self.eHandle = null; 
   };
 
+  /**
+   * clear all the decoration imgs on the canvas 
+   */
+  EditPhoto.prototype.clearAllDecos = function() {
+    var self = this;
+    self.baseLayer.get('.group').each(function(elm) {
+      if (elm.hc.type == 'deco') {
+        elm.destroy();
+      }
+    });
+    self.eEdit = null;
+    self.eHandle.hide();
+  };
+
+  /**
+   * change the specific item editable status
+   * @param {Kinetic.Group} currentElm
+   */
+  EditPhoto.prototype.changeEditItem = function(currentElm) {
+    var self = this;
+    if (currentElm.getOpacity() < 1) {
+      self.changeEditMode(currentElm, false);
+    } else {
+      self.changeToPreviewMode();
+      self.changeEditMode(currentElm, true);
+    }
+  };
+
+  /**
+   * make the specific bgGroup editable or not
+   * @param {Kinetic.Group} elm
+   * @param {boolen} edit
+   */
+  EditPhoto.prototype.changeEditMode = function(elm, edit) {
+    var self = this;
+    if (self.eEdit) self.eEdit.isEditing = false;
+    if (edit) {
+      elm.get('.bg').each(function(elm) { 
+        if(typeof elm.enableStroke === 'function')
+          elm.enableStroke()
+        else
+          elm.strokeEnabled(true);
+      });
+      elm.isEditing = true;
+      self.eEdit = elm;
+      elm.setOpacity(0.9);
+      if(!self.eEdit.isLocked) self.eHandle.show();
+      self.eHandle.moveToTop();
+    } else {
+      elm.get('.bg').each(function(elm){ 
+        if(typeof elm.disableStroke === 'function')
+          elm.disableStroke()
+        else
+          elm.strokeEnabled(false);
+      });
+      elm.setOpacity(1);
+      self.eHandle.hide();
+      self.eEdit = null;
+    }
+  };
+
+  /**
+   * change the stage into preview mode
+   */
+  EditPhoto.prototype.changeToPreviewMode = function() {
+    var self = this;
+    self.baseLayer.get('.group').each(function(elm) {
+      self.changeEditMode(elm, false);
+    });
+    self.eHandle.hide();
+  };
+
+  /**
+   * lock or unlock the specific edit item
+   */
+  EditPhoto.prototype.toggleLockEditItem = function() {
+    var eEdit = this.eEdit;
+    if (eEdit) {
+      if (eEdit.isLocked) {
+        if(eEdit.hc.usable)eEdit.setDraggable(true);
+        eEdit.get('.bg').each(function(elm) {
+          elm.setStroke(this.options.editingStrokeColor);
+          this.eHandle.show();
+        });
+      } else {
+        eEdit.setDraggable(false);
+        eEdit.get('.bg').each(function(elm) {
+          elm.setStroke(this.options.lockedStrokeColor);
+          this.eHandle.hide();
+        });
+      }
+      eEdit.isLocked = !eEdit.isLocked;
+      _render.call(this,null);
+    }
+  };
+
+  /**
+   * remove the current being edited image from canvas
+   */
+  EditPhoto.prototype.removeEditItem = function() {
+    var self = this;
+    if (self.eEdit) {
+      self.eEdit.destroy();
+      self.eEdit = null;
+    }
+    if (self.eHandle) self.eHandle.hide();
+    _render.call(self,null);
+    //$(document).trigger(self.CHANGE_EDIT_ITEM);
+  };
+
+  /**
+   *  use this method to add photo to stage regardless of from album or app local pngs
+   *  @param {string} uri,such as 'path/img.png' or the parameter of the callback function when
+   *  calling camera or photo api of phonegap
+   *  @param {json} options,{type:'photo'} used to indicate the img won't be removed by
+   *  clearAllDecos function
+   */
+  EditPhoto.prototype.addImage = function(uri, options) {
+    var imageObj = new Image();
+    var self = this;
+    imageObj.onload = function(){
+      var type = 'deco';//the default type,the other type is 'photo'
+      var id = '';
+      var tmpW = Math.floor(imageObj.width * 0.5);
+      var w = Math.min(tmpW, 310);
+      var scaleX = 1;
+      var degree = 0;
+      var position = { x: (self.stage.getWidth() * 0.5), y: (self.stage.getHeight() * 0.5) };
+      var usable = true;
+      var callback = null;
+
+      if (options) {
+        if (options.id) id = options.id;
+        if (options.degree) degree  = options.degree;
+        if (options.position) position = options.position;
+        if (options.w) w = options.w;
+        if (options.scaleX) scaleX = options.scaleX;
+        if (options.type) type = options.type;
+        if (options.usable === false) usable = false;
+        if (options.callback) callback = options.callback;
+      }
+
+      var h = imageObj.height * w / imageObj.width;
+      var imgHalfW = w * 0.5;
+      var imgHalfH = h * 0.5;
+      
+
+      //TODO:the x,y of Group and Image can cause the bug when move the handle
+      /*
+      // Kinetic.Group as the container of photo 
+      var bgGroup = new Kinetic.Group({
+        x: position.x - imgHalfW,
+        y: position.y - imgHalfH,
+        width: w,
+        height: h,
+        rotationDeg: degree,
+        draggable: usable,
+        id: 'group_' + count++,
+        name: 'group',
+        layer: self.baseLayer
+      });
+
+      bgGroup.hc = {
+        id: id, 
+        type : type,//may 'deco' or 'photo'
+        image: imageObj,
+        usable: usable,
+      };
+
+      // Kinetic.Image wrap the photo 
+      var bgImg = new Kinetic.Image({
+        image: imageObj,
+        //relative position to the parent Kinetic.Group,but(0,0) can cause a bug!
+        x: 100,
+        y: 100,
+        width: w,
+        height: h,
+        scaleX: scaleX,
+        draggable: false,
+        stroke: self.options.editingStrokeColor,
+        strokeWidth: self.options.editingStrokeWidth,
+        strokeScaleEnabled: false,
+        strokeEnabled: false,
+        name: 'bg',
+      });
+     */
+
+      var bgGroup = new Kinetic.Group({
+        x: position.x,
+        y: position.y,
+        width: w,
+        height: h,
+        offset: [imgHalfW, imgHalfH],
+        rotationDeg: degree,
+        draggable: usable,
+        id: 'group_' + self.count++,
+        name: 'group',
+        layer: self.baseLayer
+      });
+
+      //TODO:need to remove the structure
+      bgGroup.hc = {
+        id: id, 
+        type : type,//may 'deco' or 'photo'
+        image: imageObj,
+        usable: usable,
+      };
+
+      // Kinetic.Image wrap the photo 
+      var bgImg = new Kinetic.Image({
+        image: imageObj,
+        x: imgHalfW,
+        y: imgHalfH,
+        width: w,
+        height: h,
+        scaleX: scaleX,
+        offset: [imgHalfW, imgHalfH],
+        draggable: false,
+        stroke: self.options.editingStrokeColor,
+        strokeWidth: self.options.editingStrokeWidth,
+        strokeScaleEnabled: false,
+        strokeEnabled: false,
+        name: 'bg',
+      });
+
+
+      // set the handler position on the top right of bgGroup which contains the photo
+      _setHandleToRightTop.call(self,bgGroup);
+      var touchStart = null;
+      bgGroup.on('touchstart', _.throttle(function(e) {
+        console.log('bgGroup,touchstart');
+        var that = this;
+        if (that.isEditing && that.isPinching) return; 
+        touchStart = self.stage.getTouchPosition();
+        _setHandleToRightTop.call(self,that);
+        if (that.isLocked) return; 
+      }, 300));
+
+      bgGroup.on('touchend',_.throttle(function(e){
+        console.log('bgGroup,touchend');
+        var that = this;
+        if(that.isEditing && that.isPinching && !self.eEdit.isPinching) return;
+        var nowTouch = self.stage.getTouchPosition();
+        if (touchStart) {
+          if (Math.abs(touchStart.x - nowTouch.x) < 4 && Math.abs(touchStart.y - nowTouch.y) < 4 ) {
+            self.changeEditItem(that);
+          }
+        }
+        clearInterval(self.timerHandle);
+        if (!this.isLocked && this.hc.usable) {
+          this.setDraggable(true);
+        }
+        self.baseLayer.batchDraw();
+      },300));
+
+      bgGroup.on('dragstart', _.throttle(function(e){
+        console.log('bgGroup,dragstart');
+        var that = this;
+        //if(this.isPinching) return;
+        this.get('.bg').each(function(elm) { elm.setOpacity(0.3); });
+        self.changeToPreviewMode();
+        self.changeEditMode(that, true);
+        clearInterval(self.timerHandle);
+        self.timerHandle = setInterval(function() {
+          _setHandleToRightTop.call(self,that);      
+        }, 25);
+      },300));
+
+      bgGroup.on('dragend', _.throttle(function(e){
+        console.log('bgGroup,dragend');
+        var that = this;
+        //if(this.isPinching) return;
+        this.get('.bg').each(function(elm) { elm.setOpacity(1); });
+        clearInterval(self.timerHandle);
+        _setHandleToRightTop.call(self,that);
+        self.baseLayer.batchDraw();
+      },300));
+
+      bgGroup.on('pinchstart', _.throttle(function(e){
+        var that = this;
+        console.log(this.getAttr('id') + ' pinchstart!---');
+        self.eHandle.setDraggable(false);
+        self.changeEditMode(that, true);
+        clearInterval(self.timerHandle);
+        self.timerHandle = setInterval(function() {
+          _setHandleToRightTop.call(self,that);
+        }, 25);
+      },300));
+
+      bgGroup.on('pinchend', _.throttle(function(e){
+        var that = this;
+        console.log(this.getAttr('id') + ' pinchend!---');
+        this.get('.bg').each(function(elm) { elm.setOpacity(1); });
+        if(that.hc.usable) self.eHandle.setDraggable(true);
+        clearInterval(self.timerHandle);
+        _setHandleToRightTop.call(self,that);
+        self.baseLayer.batchDraw();
+      },300));
+
+      bgGroup.add(bgImg);
+      self.baseLayer.add(bgGroup);
+      self.changeEditItem(bgGroup);
+      //$(document).trigger(self.CHANGE_EDIT_ITEM);
+      setTimeout(function() {self.baseLayer.draw();}, 100);
+    };
+    imageObj.src = uri;
+  };
+  
+  var App = {};
   App.Math = {
     getDistanceFromTwoPoint: function(x1, y1, x2, y2) {
       　　var dx, dy, d;
@@ -689,5 +581,7 @@ App = {};
       var dy = touch1.clientY - touch2.clientY;
       return Math.atan2(dy, dx);
     }
-  }
-  })(App, jQuery);
+  };
+
+  return EditPhoto;
+})();
