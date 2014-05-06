@@ -120,7 +120,8 @@ var EditPhoto = (function(){
         y: 0,
         width: self.options.handleWidth,
         height: self.options.handleHeight,
-        offset: [20, 20], 
+        offsetX: self.options.handleWidth>>1,
+        offsetY: self.options.handleHeight>>1, 
         id: 'handle',
         name: 'handle',
       });
@@ -232,6 +233,81 @@ var EditPhoto = (function(){
       self.baseLayer.batchDraw();
   };
 
+  var _bindEvt = function(editPhoto,ename){
+    var self = editPhoto;
+    var bgGroup = this;
+    _setHandleToRightTop.call(self,bgGroup);
+    var touchStart = null;
+    bgGroup.on('touchstart', _.throttle(function(e) {
+      console.log('_bindEvt,touchstart');
+      var that = this;
+      if (that.isEditing && that.isPinching) return; 
+      touchStart = self.stage.getTouchPosition();
+      _setHandleToRightTop.call(self,that);
+      if (that.isLocked) return; 
+    }, 300));
+
+    bgGroup.on('touchend',_.throttle(function(e){
+      console.log('_bindEvt,touchend');
+      var that = this;
+      if(that.isEditing && that.isPinching && !self.eEdit.isPinching) return;
+      var nowTouch = self.stage.getTouchPosition();
+      if (touchStart) {
+        if (Math.abs(touchStart.x - nowTouch.x) < 4 && Math.abs(touchStart.y - nowTouch.y) < 4 ) {
+          self.changeEditItem(that);
+        }
+      }
+      clearInterval(self.timerHandle);
+      if (!this.isLocked && this.hc.usable) {
+        this.setDraggable(true);
+      }
+      self.baseLayer.batchDraw();
+    },300));
+   
+    bgGroup.on('dragstart', _.throttle(function(e){
+      console.log('bgGroup,dragstart');
+      var that = this;
+      //if(this.isPinching) return;
+      this.get('.'+ename).each(function(elm) { elm.setOpacity(0.3); });
+      self.changeToPreviewMode();
+      self.changeEditMode(that, true);
+      clearInterval(self.timerHandle);
+      self.timerHandle = setInterval(function() {
+        _setHandleToRightTop.call(self,that);      
+      }, 25);
+    },300));
+
+    bgGroup.on('dragend', _.throttle(function(e){
+      console.log('bgGroup,dragend');
+      var that = this;
+      //if(this.isPinching) return;
+      this.get('.'+ename).each(function(elm) { elm.setOpacity(1); });
+      clearInterval(self.timerHandle);
+      _setHandleToRightTop.call(self,that);
+      self.baseLayer.batchDraw();
+    },300));
+
+    bgGroup.on('pinchstart', _.throttle(function(e){
+      var that = this;
+      console.log(this.getAttr('id') + ' pinchstart!---');
+      self.eHandle.setDraggable(false);
+      self.changeEditMode(that, true);
+      clearInterval(self.timerHandle);
+      self.timerHandle = setInterval(function() {
+        _setHandleToRightTop.call(self,that);
+      }, 25);
+    },300));
+
+    bgGroup.on('pinchend', _.throttle(function(e){
+      var that = this;
+      console.log(this.getAttr('id') + ' pinchend!---');
+      this.get('.'+name).each(function(elm) { elm.setOpacity(1); });
+      if(that.hc.usable) self.eHandle.setDraggable(true);
+      clearInterval(self.timerHandle);
+      _setHandleToRightTop.call(self,that);
+      self.baseLayer.batchDraw();
+    },300));
+  }
 
   /**
    * clear and dispose the canvas resources
@@ -442,7 +518,8 @@ var EditPhoto = (function(){
         y: position.y,
         width: w,
         height: h,
-        offset: [imgHalfW, imgHalfH],
+        offsetX: imgHalfW,
+        offsetY: imgHalfH,
         rotationDeg: degree,
         draggable: usable,
         id: 'group_' + self.count++,
@@ -466,7 +543,8 @@ var EditPhoto = (function(){
         width: w,
         height: h,
         scaleX: scaleX,
-        offset: [imgHalfW, imgHalfH],
+        offsetX: imgHalfW, 
+        offsetY: imgHalfH,
         draggable: false,
         stroke: self.options.editingStrokeColor,
         strokeWidth: self.options.editingStrokeWidth,
@@ -552,10 +630,64 @@ var EditPhoto = (function(){
       bgGroup.add(bgImg);
       self.baseLayer.add(bgGroup);
       self.changeEditItem(bgGroup);
-      //$(document).trigger(self.CHANGE_EDIT_ITEM);
       setTimeout(function() {self.baseLayer.draw();}, 100);
     };
     imageObj.src = uri;
+  };
+
+  EditPhoto.prototype.addText = function(text,options){
+    var self = this;
+    var defaultoptions = {
+      text: text || 'Holy',
+      fontFamily: 'Calibri',
+      fill: 'green',
+      fillbg: '',
+      padding: 10,
+      align: 'left',
+      fontSize: 18,
+      width:150,
+      height:80,
+      strokebg:self.options.editingStrokeColor,
+      strokeWidthbg:self.options.editingStrokeWidth
+    };
+    $.extend(defaultoptions,options);
+    var bgText = new Kinetic.Text(defaultoptions);
+    var halfw = defaultoptions.width>>1;
+    var halfh = defaultoptions.height>>1; 
+    var txtGroup = new Kinetic.Label({
+      width:defaultoptions.width,
+      height:defaultoptions.height,
+      name:'text'
+    });
+
+    txtGroup.add(new Kinetic.Tag({
+      fill: defaultoptions.fillbg,
+      stroke: defaultoptions.strokebg,
+      strokeWidth: defaultoptions.strokeWidthbg
+    }));
+
+    //the x/y and offsetX/Y seems important!
+    var position = { x: (self.stage.getWidth() * 0.5), y: (self.stage.getHeight() * 0.5) };
+    var bgGroup = new Kinetic.Group({
+      x: position.x,
+      y: position.y,
+      width:defaultoptions.width,
+      height:defaultoptions.height,
+      offsetX:halfw,
+      offsetY:halfh,
+      //TODO:count===NaN?
+      id: 'group_' + self.count++,
+      name: 'group',
+      draggable: true
+    });
+    
+    // add the labels to layer
+    _bindEvt.call(bgGroup,self,'text');
+    txtGroup.add(bgText);
+    bgGroup.add(txtGroup);
+    self.baseLayer.add(bgGroup);
+    self.changeEditItem(bgGroup);
+    setTimeout(function() {self.baseLayer.draw();}, 100);
   };
   
   var App = {};
