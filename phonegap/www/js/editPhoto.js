@@ -109,7 +109,6 @@ var EditPhoto = (function(){
           _setHandleToRightTop.call(self,self.eEdit);
           self.baseLayer.batchDraw();
         }); 
-        self.baseLayer.batchDraw();
         if (navigator.userAgent.match(/Android/i)) {
           $("canvas").parents("*").css("overflow", "visible");
         }
