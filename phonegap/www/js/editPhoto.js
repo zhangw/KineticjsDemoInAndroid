@@ -28,9 +28,16 @@ var EditPhoto = (function(){
     _setStage.apply(this,null);
     _setBaseLayer.apply(this,null);
     _createHandle.apply(this,null);
+    var self = this; 
     var content = this.stage.getContent();
-    content.addEventListener("touchmove", _stageTouchMove, false);
-    content.addEventListener("touchend", _stageTouchEnd, false);
+    //TODO:It seems that the performance of 'content.addEventListener' better than
+    //"stage.on('touchmove',_.throttle(..."
+    content.addEventListener("touchmove", function(e){
+      _stageTouchMove.call(self,e);   
+    }, false);
+    content.addEventListener("touchend", function(e){
+      _stageTouchEnd.call(self,e);
+    }, false);
   };
   
   // stage > baseLayer > eBg 
@@ -54,7 +61,7 @@ var EditPhoto = (function(){
     var self = this;
     if (!self.baseLayer) {
       self.baseLayer = new Kinetic.Layer(
-        //TODO:OPTIMISE,should use fastLayer
+        //TODO:OPTIMISE
         {hitGrapeEnabled: false} 
       );
       self.eBg = new Kinetic.Rect({
@@ -144,7 +151,7 @@ var EditPhoto = (function(){
     }
   };
 
-  var _stageTouchMove = function(e) { 
+  var _stageTouchMove = function(e){
     var self = this;
     var eEdit = self.eEdit;
     if (!eEdit) return;
