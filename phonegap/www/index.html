@@ -49,14 +49,37 @@
     <script type="text/javascript" src="js/editPhoto.js"></script>
     <script type="text/javascript">
 		var _editPhoto = null;
-		setTimeout(function(){
-										_editPhoto = new EditPhoto({canvasContainer:'container'});
-										setTimeout(function(){
-														_editPhoto.addImage('img/logo.png',{type:'photo'});
-														_editPhoto.addImage('img/demo.png');
-														_editPhoto.addText('terminal#\n python',{fontFamily:'Candara',fill:'purple',fillbg:'#000'});
-														},3000);
-										},3000);
+    setTimeout(function(){
+      _editPhoto = new EditPhoto({canvasContainer:'container'});
+      setTimeout(function(){
+        _editPhoto.addImage('img/demo.png',{type:'photo',callback:function(element){
+          element.moveDown();
+          _editPhoto.baseLayer.draw();
+          }
+        });
+        /*var poly = new Kinetic.Polygon({
+          points: [0, 10, 20, 200, 60, 100, 150, 90],
+          stroke: '#aaa',
+          strokeWidth: 0,
+          name: 'poly',
+          draggable: false
+        });
+        var imageObj = new Image();
+        imageObj.src = 'img/logo.png';
+        imageObj.onload = function() {
+          poly.setFillPatternOffsetX(50);
+          poly.setFillPatternOffsetY(50);
+          poly.setFillPatternImage(imageObj);
+          _editPhoto.baseLayer.add(poly);
+          _editPhoto.baseLayer.draw();
+        };*/
+        //_editPhoto.addImage('img/demo.png');
+        _editPhoto.addText('terminal#\n python',{fontFamily:'Candara',fill:'purple',fillbg:'#000',callback:function(element){
+          element.moveUp();
+          _editPhoto.baseLayer.draw(); 
+        }});
+      },3000);
+    },3000);
     </script>
   </body>
 </html>

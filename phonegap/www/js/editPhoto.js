@@ -369,7 +369,7 @@ var EditPhoto = (function(){
     var self = this;
     if (self.eEdit) self.eEdit.isEditing = false;
     if (edit) {
-      elm.get('.bg').each(function(elm) { 
+      elm.get('.itemWithStroke').each(function(elm){ 
         if(typeof elm.enableStroke === 'function')
           elm.enableStroke()
         else
@@ -381,7 +381,7 @@ var EditPhoto = (function(){
       if(!self.eEdit.isLocked) self.eHandle.show();
       self.eHandle.moveToTop();
     } else {
-      elm.get('.bg').each(function(elm){ 
+      elm.get('.itemWithStroke').each(function(elm){ 
         if(typeof elm.disableStroke === 'function')
           elm.disableStroke()
         else
@@ -412,13 +412,13 @@ var EditPhoto = (function(){
     if (eEdit) {
       if (eEdit.isLocked) {
         if(eEdit.hc.usable)eEdit.setDraggable(true);
-        eEdit.get('.bg').each(function(elm) {
+        eEdit.get('.itemWithStroke').each(function(elm) {
           elm.setStroke(this.options.editingStrokeColor);
           this.eHandle.show();
         });
       } else {
         eEdit.setDraggable(false);
-        eEdit.get('.bg').each(function(elm) {
+        eEdit.get('.itemWithStroke').each(function(elm) {
           elm.setStroke(this.options.lockedStrokeColor);
           this.eHandle.hide();
         });
@@ -528,7 +528,7 @@ var EditPhoto = (function(){
         offsetY: imgHalfH,
         rotationDeg: degree,
         draggable: usable,
-        id: 'group_' + self.count++,
+        id: 'group_' + count++,
         name: 'group',
         layer: self.baseLayer
       });
@@ -556,7 +556,7 @@ var EditPhoto = (function(){
         strokeWidth: self.options.editingStrokeWidth,
         strokeScaleEnabled: false,
         strokeEnabled: false,
-        name: 'bg',
+        name: 'itemWithStroke',
       });
 
 
@@ -593,7 +593,7 @@ var EditPhoto = (function(){
         console.log('bgGroup,dragstart');
         var that = this;
         //if(this.isPinching) return;
-        this.get('.bg').each(function(elm) { elm.setOpacity(0.3); });
+        this.get('.itemWithStroke').each(function(elm) { elm.setOpacity(0.3); });
         self.changeToPreviewMode();
         self.changeEditMode(that, true);
         clearInterval(self.timerHandle);
@@ -606,7 +606,7 @@ var EditPhoto = (function(){
         console.log('bgGroup,dragend');
         var that = this;
         //if(this.isPinching) return;
-        this.get('.bg').each(function(elm) { elm.setOpacity(1); });
+        this.get('.itemWithStroke').each(function(elm) { elm.setOpacity(1); });
         clearInterval(self.timerHandle);
         _setHandleToRightTop.call(self,that);
         self.baseLayer.batchDraw();
@@ -626,7 +626,7 @@ var EditPhoto = (function(){
       bgGroup.on('pinchend', _.throttle(function(e){
         var that = this;
         console.log(this.getAttr('id') + ' pinchend!---');
-        this.get('.bg').each(function(elm) { elm.setOpacity(1); });
+        this.get('.itemWithStroke').each(function(elm) { elm.setOpacity(1); });
         if(that.hc.usable) self.eHandle.setDraggable(true);
         clearInterval(self.timerHandle);
         _setHandleToRightTop.call(self,that);
@@ -636,7 +636,10 @@ var EditPhoto = (function(){
       bgGroup.add(bgImg);
       self.baseLayer.add(bgGroup);
       self.changeEditItem(bgGroup);
-      setTimeout(function() {self.baseLayer.draw();}, 100);
+      self.baseLayer.draw();
+      if(options.callback && typeof options.callback === 'function'){
+        options.callback.call(self,bgGroup);
+      }
     };
     imageObj.src = uri;
   };
@@ -669,7 +672,9 @@ var EditPhoto = (function(){
     txtGroup.add(new Kinetic.Tag({
       fill: defaultoptions.fillbg,
       stroke: defaultoptions.strokebg,
-      strokeWidth: defaultoptions.strokeWidthbg
+      strokeWidth: defaultoptions.strokeWidthbg,
+      name:'itemWithStroke',
+      strokeEnabled:false
     }));
 
     //the x/y and offsetX/Y seems important!
@@ -682,7 +687,7 @@ var EditPhoto = (function(){
       offsetX:halfw,
       offsetY:halfh,
       //TODO:count===NaN?
-      id: 'group_' + self.count++,
+      id: 'group_' + count++,
       name: 'group',
       draggable: true
     });
@@ -693,7 +698,10 @@ var EditPhoto = (function(){
     bgGroup.add(txtGroup);
     self.baseLayer.add(bgGroup);
     self.changeEditItem(bgGroup);
-    setTimeout(function() {self.baseLayer.draw();}, 100);
+    self.baseLayer.draw();
+    if(options.callback && typeof options.callback === 'function'){
+      options.callback.call(self,bgGroup);
+    }
   };
   
   var App = {};
