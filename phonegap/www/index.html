@@ -48,13 +48,15 @@
     <!--<script type="text/javascript" src="js/libs/kinetic.js"></script>-->
     <script type="text/javascript" src="js/editPhoto.js"></script>
     <script type="text/javascript">
-      var _editPhoto = null;
-      setTimeout(function(){
-        _editPhoto = new EditPhoto({canvasContainer:'container'});
-        _editPhoto.addImage('img/logo.png',{type:'photo'});
-        _editPhoto.addImage('img/demo.png');
-        _editPhoto.addText('terminal#\n python',{fontFamily:'Candara',fill:'purple',fillbg:'#000'});
-      },3000);
+		var _editPhoto = null;
+		setTimeout(function(){
+										_editPhoto = new EditPhoto({canvasContainer:'container'});
+										setTimeout(function(){
+														_editPhoto.addImage('img/logo.png',{type:'photo'});
+														_editPhoto.addImage('img/demo.png');
+														_editPhoto.addText('terminal#\n python',{fontFamily:'Candara',fill:'purple',fillbg:'#000'});
+														},3000);
+										},3000);
     </script>
   </body>
 </html>
