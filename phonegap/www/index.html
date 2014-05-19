@@ -36,7 +36,9 @@
     </div>
     <div id="container">
     </div>
+    <!--
     <script src="http://192.1.8.100:8001/target/target-script-min.js#kineticjsdemo"></script>
+    -->
     <script type="text/javascript" src="phonegap.js"></script>
     <script type="text/javascript" src="js/index.js"></script>
     <script type="text/javascript">
@@ -77,6 +79,15 @@
         _editPhoto.addText('terminal#\n python',{fontFamily:'Candara',fill:'purple',fillbg:'#000',callback:function(element){
           element.moveUp();
           _editPhoto.baseLayer.draw(); 
+        }});
+        _editPhoto.addText('terminal>\n nodejs',{
+          fontFamily:'Candara',
+          fill:'red',
+          fillbg:'#ccc',
+          usable:false,
+          x:0,
+          y:0,
+          callback:function(element){
         }});
       },3000);
     },3000);

@@ -271,7 +271,7 @@ var EditPhoto = (function(){
     },300));
    
     bgGroup.on('dragstart', _.throttle(function(e){
-      console.log('bgGroup,dragstart');
+      console.log('_bindEvt,dragstart');
       var that = this;
       //if(this.isPinching) return;
       this.get('.'+ename).each(function(elm) { elm.setOpacity(0.3); });
@@ -284,7 +284,7 @@ var EditPhoto = (function(){
     },300));
 
     bgGroup.on('dragend', _.throttle(function(e){
-      console.log('bgGroup,dragend');
+      console.log('_bindEvt,dragend');
       var that = this;
       //if(this.isPinching) return;
       this.get('.'+ename).each(function(elm) { elm.setOpacity(1); });
@@ -657,7 +657,8 @@ var EditPhoto = (function(){
       width:150,
       height:80,
       strokebg:self.options.editingStrokeColor,
-      strokeWidthbg:self.options.editingStrokeWidth
+      strokeWidthbg:self.options.editingStrokeWidth,
+      usable:true
     };
     $.extend(defaultoptions,options);
     var bgText = new Kinetic.Text(defaultoptions);
@@ -680,24 +681,26 @@ var EditPhoto = (function(){
     //the x/y and offsetX/Y seems important!
     var position = { x: (self.stage.getWidth() * 0.5), y: (self.stage.getHeight() * 0.5) };
     var bgGroup = new Kinetic.Group({
-      x: position.x,
-      y: position.y,
+      x: (defaultoptions.x + halfw) || position.x,
+      y: (defaultoptions.y + halfh) || position.y,
       width:defaultoptions.width,
       height:defaultoptions.height,
       offsetX:halfw,
       offsetY:halfh,
-      //TODO:count===NaN?
       id: 'group_' + count++,
       name: 'group',
-      draggable: true
+      draggable: defaultoptions.usable
     });
+    bgGroup.hc = {usable:defaultoptions.usable};
     
     // add the labels to layer
-    _bindEvt.call(bgGroup,self,'text');
+    if(defaultoptions.usable){
+      _bindEvt.call(bgGroup,self,'text');
+      self.changeEditItem(bgGroup);
+    }
     txtGroup.add(bgText);
     bgGroup.add(txtGroup);
     self.baseLayer.add(bgGroup);
-    self.changeEditItem(bgGroup);
     self.baseLayer.draw();
     if(options.callback && typeof options.callback === 'function'){
       options.callback.call(self,bgGroup);
