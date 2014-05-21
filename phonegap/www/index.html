@@ -78,19 +78,21 @@
           _editPhoto.baseLayer.draw();
         };*/
         //_editPhoto.addImage('img/demo.png');
+
+        
         _editPhoto.addText('terminal#\n python',{fontFamily:'Candara',fill:'purple',fillbg:'#000',callback:function(element){
           element.moveUp();
           _editPhoto.baseLayer.draw(); 
         }});
         _editPhoto.addText('terminal>\n nodejs',{
           fontFamily:'Candara',
-          fill:'red',
-          fillbg:'#ccc',
+          fill:'green',
           usable:false,
           x:0,
           y:0,
           callback:function(element){
         }});
+        
       },3000);
     },3000);
     </script>

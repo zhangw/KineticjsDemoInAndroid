@@ -61,7 +61,7 @@ var EditPhoto = (function(){
     var self = this;
     if (!self.baseLayer) {
       self.baseLayer = new Kinetic.Layer(
-        //TODO:OPTIMISE
+        //performace OPTIMISE
         {hitGrapeEnabled: false} 
       );
       self.eBg = new Kinetic.Rect({
@@ -71,7 +71,7 @@ var EditPhoto = (function(){
         height: self.options.stageHeight,
         fill: self.options.stageBgColor,
         id: 'bg',
-        //TODO:OPTIMISE
+        //performace OPTIMISE
         transformsEnabled: 'position'
       });
       self.eBg.on('touchend', _.throttle(function(e){
@@ -107,7 +107,6 @@ var EditPhoto = (function(){
           //var startRadian = self.eEdit.getRotation();
           clearInterval(self.timerHandle);
           self.timerHandle = setInterval(function() {
-            //TODO:bug!
             moveHandle.call(self, baseX, baseY, startRadius, startAspectRadian);
           }, 25);
         });
@@ -191,7 +190,7 @@ var EditPhoto = (function(){
     }
     eEdit.isPinching = false;
     if (eEdit.isLocked) return;
-    if (eEdit.hc.usable) eEdit.setDraggable(true);
+    if (eEdit.customAttr.usable) eEdit.setDraggable(true);
     eEdit.startDistance = undefined;
     eEdit.startScale = eEdit.getScale().x;
   };
@@ -223,8 +222,10 @@ var EditPhoto = (function(){
    */
   var _setHandleToRightTop = function(elm) {
     var self = this;
-    var rightTopPos = _getRightTopPoint.call(self,elm);
-    self.eHandle.setPosition(rightTopPos);
+    if(elm){
+      var rightTopPos = _getRightTopPoint.call(self,elm);
+      self.eHandle.setPosition(rightTopPos);
+    }
   };
 
   /**
@@ -242,6 +243,7 @@ var EditPhoto = (function(){
   var _bindEvt = function(editPhoto,ename){
     var self = editPhoto;
     var bgGroup = this;
+    // set the handler position on the top right of bgGroup which contains the photo
     _setHandleToRightTop.call(self,bgGroup);
     var touchStart = null;
     bgGroup.on('touchstart', _.throttle(function(e) {
@@ -264,7 +266,7 @@ var EditPhoto = (function(){
         }
       }
       clearInterval(self.timerHandle);
-      if (!this.isLocked && this.hc.usable) {
+      if (!this.isLocked && this.customAttr.usable) {
         this.setDraggable(true);
       }
       self.baseLayer.batchDraw();
@@ -308,7 +310,7 @@ var EditPhoto = (function(){
       var that = this;
       console.log(this.getAttr('id') + ' pinchend!---');
       this.get('.'+name).each(function(elm) { elm.setOpacity(1); });
-      if(that.hc.usable) self.eHandle.setDraggable(true);
+      if(that.customAttr.usable) self.eHandle.setDraggable(true);
       clearInterval(self.timerHandle);
       _setHandleToRightTop.call(self,that);
       self.baseLayer.batchDraw();
@@ -338,7 +340,7 @@ var EditPhoto = (function(){
   EditPhoto.prototype.clearAllDecos = function() {
     var self = this;
     self.baseLayer.get('.group').each(function(elm) {
-      if (elm.hc.type == 'deco') {
+      if (elm.customAttr.type == 'deco') {
         elm.destroy();
       }
     });
@@ -411,7 +413,7 @@ var EditPhoto = (function(){
     var eEdit = this.eEdit;
     if (eEdit) {
       if (eEdit.isLocked) {
-        if(eEdit.hc.usable)eEdit.setDraggable(true);
+        if(eEdit.customAttr.usable)eEdit.setDraggable(true);
         eEdit.get('.itemWithStroke').each(function(elm) {
           elm.setStroke(this.options.editingStrokeColor);
           this.eHandle.show();
@@ -453,104 +455,51 @@ var EditPhoto = (function(){
     var imageObj = new Image();
     var self = this;
     imageObj.onload = function(){
-      var type = 'deco';//the default type,the other type is 'photo'
-      var id = '';
-      var tmpW = Math.floor(imageObj.width * 0.5);
-      var w = Math.min(tmpW, 310);
-      var scaleX = 1;
-      var degree = 0;
-      var position = { x: (self.stage.getWidth() * 0.5), y: (self.stage.getHeight() * 0.5) };
-      var usable = true;
-      var callback = null;
-
-      if (options) {
-        if (options.id) id = options.id;
-        if (options.degree) degree  = options.degree;
-        if (options.position) position = options.position;
-        if (options.w) w = options.w;
-        if (options.scaleX) scaleX = options.scaleX;
-        if (options.type) type = options.type;
-        if (options.usable === false) usable = false;
-        if (options.callback) callback = options.callback;
-      }
-
-      var h = imageObj.height * w / imageObj.width;
-      var imgHalfW = w * 0.5;
-      var imgHalfH = h * 0.5;
-      
-
-      //TODO:the x,y of Group and Image can cause the bug when move the handle
-      /*
-      // Kinetic.Group as the container of photo 
+      var w = Math.min(Math.floor(imageObj.width * 0.5));
+      var h = imageObj.height * w / imageObj.width; 
+      var defaultoptions = {
+        type:'deco',//the default type,the other type is 'photo'
+        id:'',
+        w:w,
+        h:h,
+        imgHalfW:w>>1,
+        imgHalfH:h>>1,
+        scaleX:1,
+        degree:0,
+        position:{ x: (self.stage.getWidth() * 0.5), y: (self.stage.getHeight() * 0.5) },
+        usable:true,
+        callback:null
+      };
+      $.extend(defaultoptions,options); 
       var bgGroup = new Kinetic.Group({
-        x: position.x - imgHalfW,
-        y: position.y - imgHalfH,
-        width: w,
-        height: h,
-        rotationDeg: degree,
-        draggable: usable,
+        x: defaultoptions.position.x,
+        y: defaultoptions.position.y,
+        width: defaultoptions.w,
+        height: defaultoptions.h,
+        offsetX: defaultoptions.imgHalfW,
+        offsetY: defaultoptions.imgHalfH,
+        rotationDeg: defaultoptions.degree,
+        draggable: defaultoptions.usable,
         id: 'group_' + count++,
-        name: 'group',
-        layer: self.baseLayer
+        name: 'group'
       });
 
-      bgGroup.hc = {
-        id: id, 
-        type : type,//may 'deco' or 'photo'
-        image: imageObj,
-        usable: usable,
+      bgGroup.customAttr = {
+        id: defaultoptions.id, 
+        type : defaultoptions.type,//may 'deco' or 'photo'
+        usable: defaultoptions.usable
       };
 
       // Kinetic.Image wrap the photo 
       var bgImg = new Kinetic.Image({
         image: imageObj,
-        //relative position to the parent Kinetic.Group,but(0,0) can cause a bug!
-        x: 100,
-        y: 100,
-        width: w,
-        height: h,
-        scaleX: scaleX,
-        draggable: false,
-        stroke: self.options.editingStrokeColor,
-        strokeWidth: self.options.editingStrokeWidth,
-        strokeScaleEnabled: false,
-        strokeEnabled: false,
-        name: 'bg',
-      });
-     */
-
-      var bgGroup = new Kinetic.Group({
-        x: position.x,
-        y: position.y,
-        width: w,
-        height: h,
-        offsetX: imgHalfW,
-        offsetY: imgHalfH,
-        rotationDeg: degree,
-        draggable: usable,
-        id: 'group_' + count++,
-        name: 'group',
-        layer: self.baseLayer
-      });
-
-      //TODO:need to remove the structure
-      bgGroup.hc = {
-        id: id, 
-        type : type,//may 'deco' or 'photo'
-        image: imageObj,
-        usable: usable,
-      };
-
-      // Kinetic.Image wrap the photo 
-      var bgImg = new Kinetic.Image({
-        image: imageObj,
-        x: imgHalfW,
-        y: imgHalfH,
-        width: w,
-        height: h,
-        scaleX: scaleX,
-        offsetX: imgHalfW, 
-        offsetY: imgHalfH,
+        x: defaultoptions.imgHalfW,
+        y: defaultoptions.imgHalfH,
+        width: defaultoptions.w,
+        height: defaultoptions.h,
+        scaleX: defaultoptions.scaleX,
+        offsetX: defaultoptions.imgHalfW, 
+        offsetY: defaultoptions.imgHalfH,
         draggable: false,
         stroke: self.options.editingStrokeColor,
         strokeWidth: self.options.editingStrokeWidth,
@@ -558,85 +507,14 @@ var EditPhoto = (function(){
         strokeEnabled: false,
         name: 'itemWithStroke',
       });
-
-
-      // set the handler position on the top right of bgGroup which contains the photo
-      _setHandleToRightTop.call(self,bgGroup);
-      var touchStart = null;
-      bgGroup.on('touchstart', _.throttle(function(e) {
-        console.log('bgGroup,touchstart');
-        var that = this;
-        if (that.isEditing && that.isPinching) return; 
-        touchStart = self.stage.getTouchPosition();
-        _setHandleToRightTop.call(self,that);
-        if (that.isLocked) return; 
-      }, 300));
-
-      bgGroup.on('touchend',_.throttle(function(e){
-        console.log('bgGroup,touchend');
-        var that = this;
-        if(that.isEditing && that.isPinching && !self.eEdit.isPinching) return;
-        var nowTouch = self.stage.getTouchPosition();
-        if (touchStart) {
-          if (Math.abs(touchStart.x - nowTouch.x) < 4 && Math.abs(touchStart.y - nowTouch.y) < 4 ) {
-            self.changeEditItem(that);
-          }
-        }
-        clearInterval(self.timerHandle);
-        if (!this.isLocked && this.hc.usable) {
-          this.setDraggable(true);
-        }
-        self.baseLayer.batchDraw();
-      },300));
-
-      bgGroup.on('dragstart', _.throttle(function(e){
-        console.log('bgGroup,dragstart');
-        var that = this;
-        //if(this.isPinching) return;
-        this.get('.itemWithStroke').each(function(elm) { elm.setOpacity(0.3); });
-        self.changeToPreviewMode();
-        self.changeEditMode(that, true);
-        clearInterval(self.timerHandle);
-        self.timerHandle = setInterval(function() {
-          _setHandleToRightTop.call(self,that);      
-        }, 25);
-      },300));
-
-      bgGroup.on('dragend', _.throttle(function(e){
-        console.log('bgGroup,dragend');
-        var that = this;
-        //if(this.isPinching) return;
-        this.get('.itemWithStroke').each(function(elm) { elm.setOpacity(1); });
-        clearInterval(self.timerHandle);
-        _setHandleToRightTop.call(self,that);
-        self.baseLayer.batchDraw();
-      },300));
-
-      bgGroup.on('pinchstart', _.throttle(function(e){
-        var that = this;
-        console.log(this.getAttr('id') + ' pinchstart!---');
-        self.eHandle.setDraggable(false);
-        self.changeEditMode(that, true);
-        clearInterval(self.timerHandle);
-        self.timerHandle = setInterval(function() {
-          _setHandleToRightTop.call(self,that);
-        }, 25);
-      },300));
-
-      bgGroup.on('pinchend', _.throttle(function(e){
-        var that = this;
-        console.log(this.getAttr('id') + ' pinchend!---');
-        this.get('.itemWithStroke').each(function(elm) { elm.setOpacity(1); });
-        if(that.hc.usable) self.eHandle.setDraggable(true);
-        clearInterval(self.timerHandle);
-        _setHandleToRightTop.call(self,that);
-        self.baseLayer.batchDraw();
-      },300));
-
+      
+      if(defaultoptions.usable){
+        _bindEvt.call(bgGroup,self,'itemWithStroke');
+        self.changeEditItem(bgGroup);
+      }
       bgGroup.add(bgImg);
       self.baseLayer.add(bgGroup);
-      self.changeEditItem(bgGroup);
-      self.baseLayer.draw();
+      self.baseLayer.batchDraw();
       if(options.callback && typeof options.callback === 'function'){
         options.callback.call(self,bgGroup);
       }
@@ -691,7 +569,11 @@ var EditPhoto = (function(){
       name: 'group',
       draggable: defaultoptions.usable
     });
-    bgGroup.hc = {usable:defaultoptions.usable};
+
+    bgGroup.customAttr = {
+      usable:defaultoptions.usable,
+      type:'text'
+    };
     
     // add the labels to layer
     if(defaultoptions.usable){
@@ -701,7 +583,7 @@ var EditPhoto = (function(){
     txtGroup.add(bgText);
     bgGroup.add(txtGroup);
     self.baseLayer.add(bgGroup);
-    self.baseLayer.draw();
+    self.baseLayer.batchDraw();
     if(options.callback && typeof options.callback === 'function'){
       options.callback.call(self,bgGroup);
     }
