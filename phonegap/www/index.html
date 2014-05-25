@@ -62,14 +62,10 @@
               _editPhoto.baseLayer.batchDraw();
             },
             opacity:1,
-            listening:true,
-            usable:true
             });
           },
-          listening:false,
           usable:false,
-          //TODO:test
-          w:300
+          w:200
           });
           /*var poly = new Kinetic.Polygon({
 points: [0, 10, 20, 200, 60, 100, 150, 90],
@@ -88,10 +84,9 @@ _editPhoto.baseLayer.add(poly);
 _editPhoto.baseLayer.draw();
 };*/
 //_editPhoto.addImage('img/demo.png');
-          /*_editPhoto.addText('terminal#\n python',{fontFamily:'Candara',fill:'purple',fillbg:'#000',callback:function(element){
-            element.moveToTop();
-            _editPhoto.baseLayer.batchDraw();
-          }});*/
+          _editPhoto.addText('terminal#\n python',{fontFamily:'Candara',fill:'purple',fillbg:'#000',callback:function(element){
+          }});
+          _editPhoto.addText('terminal#\n nodejs',{usable:false,x:0,y:0});
         },100);
     },3000);
     </script>
