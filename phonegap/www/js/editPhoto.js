@@ -39,12 +39,14 @@ var EditPhoto = (function(){
     var content = this.stage.getContent();
     //It seems that the performance of 'content.addEventListener' better than
     //"stage.on('touchmove',_.throttle(..."
+    
     content.addEventListener("touchmove", function(e){
       _stageTouchMove.call(self,e);   
     }, false);
     content.addEventListener("touchend", function(e){
       _stageTouchEnd.call(self,e);
     }, false);
+   
   };
   
   // stage > baseLayer > eBg 
@@ -251,6 +253,7 @@ var EditPhoto = (function(){
     // set the handler position on the top right of bgGroup which contains the photo
     _setHandleToRightTop.call(self,bgGroup);
     var touchStart = null;
+    
     bgGroup.on('touchstart', _.throttle(function(e) {
       console.log('_bindEvt,touchstart');
       var that = this;
@@ -320,10 +323,12 @@ var EditPhoto = (function(){
       _setHandleToRightTop.call(self,that);
       self.baseLayer.batchDraw();
     },300));
-
-    bgGroup.on('dblclick', _.throttle(function(e){
+    
+    
+    //dbltap works fine in mobile especially android,dblclick works fine in desktop.
+    bgGroup.on('dbltap', _.throttle(function(e){
       var that = this;
-      console.log('_bindEvt,dblclick');
+      console.log('_bindEvt,dbltap');
       self.changeEditMode(that,true);
       self.removeEditItem();
     },300));
