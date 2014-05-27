@@ -52,7 +52,12 @@
     <script type="text/javascript">
       var _editPhoto = null;
       setTimeout(function(){
+        //_editPhoto = new EditPhoto({canvasContainer:'container',editingStrokeWidth:4,enableEditingStroke:true,enableHandle:true});
         _editPhoto = new EditPhoto({canvasContainer:'container'});
+        //TODO:
+        //1.add options to enable or disable the handle and stroke of the image
+        //2.need to implement that delete an image when double click event fired
+        //3.set the font color for the created text element
         setTimeout(function(){
           _editPhoto.addImage('img/dog.png',{type:'deco',callback:function(element){
             _editPhoto.addImage('img/logo.png',{type:'deco',callback:function(element){
@@ -67,26 +72,19 @@
           usable:false,
           w:200
           });
-          /*var poly = new Kinetic.Polygon({
-points: [0, 10, 20, 200, 60, 100, 150, 90],
-stroke: '#aaa',
-strokeWidth: 0,
-name: 'poly',
-draggable: false
-});
-var imageObj = new Image();
-imageObj.src = 'img/logo.png';
-imageObj.onload = function() {
-poly.setFillPatternOffsetX(50);
-poly.setFillPatternOffsetY(50);
-poly.setFillPatternImage(imageObj);
-_editPhoto.baseLayer.add(poly);
-_editPhoto.baseLayer.draw();
-};*/
-//_editPhoto.addImage('img/demo.png');
           _editPhoto.addText('terminal#\n python',{fontFamily:'Candara',fill:'purple',fillbg:'#000',callback:function(element){
           }});
-          _editPhoto.addText('terminal#\n nodejs',{usable:false,x:0,y:0});
+          _editPhoto.addText('color will be changed in 3s.',{usable:false,x:0,y:0,callback:function(element){
+            setTimeout(function(){
+              var groupid = element.attrs.id;
+              var group = _editPhoto.baseLayer.get('#'+groupid)[0];
+              //in the case,group===element and group===_editPhoto.eEdit if the text being edited.
+              var text = group.get('Text')[0];
+              console.log(text);
+              text.setFill('blue');
+              _editPhoto.baseLayer.batchDraw(); 
+            },3000); 
+          }});
         },100);
     },3000);
     </script>

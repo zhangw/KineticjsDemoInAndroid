@@ -13,8 +13,10 @@ var EditPhoto = (function(){
       handleHeight: 40,// default handle height
       editingStrokeColor: '#62CDD8', // default stroke color when editing the specific photo
       lockedStrokeColor: '#F0F0F0', // default stroke color when the specific photo locked
-      editingStrokeWidth: 6, // default stroke width 
-      canvasContainer:'photoCanvasContainer' // the div contains the canvas 
+      editingStrokeWidth: 1, // default stroke width 
+      canvasContainer:'photoCanvasContainer', // the div contains the canvas
+      enableHandle: false, //enable/disable the handle
+      enableEditingStroke: false //enable/disable the stroke when image being edited
     };
     this.stage = null; // the only canvas
     this.baseLayer = null;// the only layer
@@ -27,7 +29,12 @@ var EditPhoto = (function(){
     $.extend(this.options,options); 
     _setStage.apply(this,null);
     _setBaseLayer.apply(this,null);
-    _createHandle.apply(this,null);
+    //Optimise for android
+    if (navigator.userAgent.match(/Android/i)) {
+      $("canvas").parents("*").css("overflow", "visible");
+    }
+    if(options.enableHandle)
+      _createHandle.apply(this,null);
     var self = this; 
     var content = this.stage.getContent();
     //It seems that the performance of 'content.addEventListener' better than
@@ -114,9 +121,7 @@ var EditPhoto = (function(){
           _setHandleToRightTop.call(self,self.eEdit);
           self.baseLayer.batchDraw();
         }); 
-        if (navigator.userAgent.match(/Android/i)) {
-          $("canvas").parents("*").css("overflow", "visible");
-        }
+        
       };
       var eHandle = new Kinetic.Image({
         image: imageObj,
@@ -222,8 +227,10 @@ var EditPhoto = (function(){
    */
   var _setHandleToRightTop = function(elm) {
     var self = this;
-    var rightTopPos = _getRightTopPoint.call(self,elm);
-    self.eHandle.setPosition(rightTopPos);
+    if(self.eHandle && self.options.enablehandle){
+      var rightTopPos = _getRightTopPoint.call(self,elm);
+      self.eHandle.setPosition(rightTopPos);
+    }
   };
 
   /**
@@ -313,6 +320,13 @@ var EditPhoto = (function(){
       _setHandleToRightTop.call(self,that);
       self.baseLayer.batchDraw();
     },300));
+
+    bgGroup.on('dblclick', _.throttle(function(e){
+      var that = this;
+      console.log('_bindEvt,dblclick');
+      self.changeEditMode(that,true);
+      self.removeEditItem();
+    },300));
   }
 
   /**
@@ -371,11 +385,13 @@ var EditPhoto = (function(){
     var self = this;
     if (self.eEdit) self.eEdit.isEditing = false;
     if (edit) {
-      elm.get('.itemWithStroke').each(function(elm){ 
-        if(typeof elm.enableStroke === 'function')
-          elm.enableStroke()
-        else
-          elm.strokeEnabled(true);
+      elm.get('.itemWithStroke').each(function(elm){
+        if(self.options.enableEditingStroke){
+          if(typeof elm.enableStroke === 'function')
+            elm.enableStroke()
+          else
+            elm.strokeEnabled(true);
+        }
       });
       elm.isEditing = true;
       self.eEdit = elm;
@@ -386,10 +402,12 @@ var EditPhoto = (function(){
       }
     } else {
       elm.get('.itemWithStroke').each(function(elm){ 
-        if(typeof elm.disableStroke === 'function')
-          elm.disableStroke()
-        else
-          elm.strokeEnabled(false);
+        if(self.options.enableEditingStroke){
+          if(typeof elm.disableStroke === 'function')
+            elm.disableStroke()
+          else
+            elm.strokeEnabled(false);
+        }
       });
       elm.setOpacity(1);
       if(self.eHandle)
