@@ -362,7 +362,9 @@ var EditPhoto = (function(){
       }
     });
     self.eEdit = null;
-    self.eHandle.hide();
+    if(self.eHandle)
+      self.eHandle.hide();
+    self.baseLayer.batchDraw();
   };
 
   /**
@@ -450,7 +452,8 @@ var EditPhoto = (function(){
         eEdit.setDraggable(false);
         eEdit.get('.itemWithStroke').each(function(elm) {
           elm.setStroke(this.options.lockedStrokeColor);
-          this.eHandle.hide();
+          if(this.eHandle)
+            this.eHandle.hide();
         });
       }
       eEdit.isLocked = !eEdit.isLocked;
